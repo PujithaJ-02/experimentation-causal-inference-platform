@@ -1,60 +1,59 @@
 # Experimentation and Causal Inference Platform
 
-I built this to answer a question that comes up on every product team I have seen:
-we ran an experiment, now what do we actually do about it? This pipeline takes a
-raw randomized experiment and gives back a clear decision (ship it, ship it to a
-specific segment, or kill it), along with the statistics that decision should rest on.
+I built this to answer a question that comes up on every product team: we ran an
+experiment, now what do we actually do about it? This project takes a real randomized
+ad experiment and turns it into a clear decision, backed by the statistics that decision
+should rest on.
 
-Most portfolio projects stop at a t-test. I wanted this one to look like the work an
-experimentation team actually does, so it goes further: it checks that the randomization
-held before trusting anything, reduces variance with CUPED, stays honest when you peek at
-results early, and models which users respond best rather than just asking "did it work."
+## The headline result
 
-## What it does
+Using Criteo's real ad experiment (about 14 million users, randomly split into a group
+shown the ad and a group held back), I found:
 
-Point it at a randomized experiment and it will:
+- **The ad works.** Buying went from 0.19% without the ad to 0.31% with it. Across 14
+  million people that difference is far too steady to be luck, so it is a real effect.
+- **It did no harm.** Site visits went up too, so nothing got worse while buying improved.
+- **It only really helps one slice of users.** When I split users into four equal groups,
+  almost all of the benefit landed in a single group. For the rest the ad barely moved.
 
-- confirm the treatment and control groups are actually comparable before anything else,
-- run the primary A/B analysis and report a confidence interval, not just a p-value,
-- check a guardrail metric so a "win" is not quietly doing harm somewhere,
-- tighten the estimate with CUPED and keep repeated checking from inflating false positives,
-- find which segments respond most and score users by predicted uplift,
-- and end with a one-page memo a product lead can read in two minutes.
+So the recommendation is to target the ad at the group it actually works on, rather than
+paying to show it to everyone. The full write-up is in
+[reports/decision_memo.md](reports/decision_memo.md).
+
+## What the project does, step by step
+
+1. **Load the data** (`src/data_loading.py`) - downloads the real Criteo experiment, or
+   builds realistic stand-in data if the download is not reachable.
+2. **Run the A/B test** (`src/ab_test.py`) - compares the two groups, reports a confidence
+   interval, and checks whether the difference is real or luck.
+3. **Find who responds** (`src/heterogeneous.py`) - splits users into groups and measures
+   the ad's effect in each, to see who it works best on.
+4. **The decision memo** (`reports/decision_memo.md`) - the plain-English recommendation.
+
+## How to run it
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+python3 src/data_loading.py     # get the data
+python3 src/ab_test.py          # is the ad effect real?
+python3 src/heterogeneous.py    # who does it work best on?
+```
 
 ## The data
 
-I use the Criteo Uplift v2.1 benchmark: about 14 million rows from a real ad-exposure
-experiment, 12 anonymous features, a treatment flag, and two outcomes (visit and conversion).
-Two things about it are worth knowing up front. The split is roughly 85% treated and 15%
-control, not 50/50, and the conversion rate is very low (around 0.29%), which makes conversion
-a low-power metric. I report it with a confidence interval and lean on visit as a
-higher-power secondary.
+Criteo Uplift v2.1: about 14 million users, 12 anonymous features (f0..f11), a treatment
+flag (shown the ad or not), and two outcomes (visit and conversion). The split is roughly
+85% shown the ad and 15% held back, and the buying rate is low (around 0.3%), so effects
+are small but measurable at this scale. The raw data is not committed to the repo; the
+loader reproduces it.
 
-If the real file cannot be downloaded (for example on a locked-down machine), the loader
-falls back to a simulated experiment built from a documented data-generating process. The
-nice side effect is that the simulation has a known true treatment effect, so I can check
-that every estimator recovers the number it is supposed to.
+## Honest notes
 
-Raw data never gets committed. The loader that produces it does.
-
-## Running it
-
-```bash
-pip install -r requirements.txt
-make data     # download the real data or simulate it, then write the processed file
-make test     # run the unit tests
-```
-
-More `make` targets get wired in as each phase lands.
-
-## Principles I am holding myself to
-
-1. If a fancier method does not beat the simple one, I say so. I do not hide it.
-2. Every effect gets a confidence interval. No bare point estimates.
-3. One fixed random seed, set everywhere, so the numbers reproduce from a clean clone.
-4. Raw data stays out of the repo; the code that makes it stays in.
-
-## Status
-
-Early. The scaffold and the plan are in place. Phases land one at a time, and this README
-grows with them. The decision memo, not the code, is the thing to read first once it exists.
+- The user groups are built from an anonymized feature, so I cannot yet say in plain terms
+  who the high-response group actually is. That would be the next step before real targeting.
+- "Statistically real" is not the same as "worth the money." The ad clearly has an effect;
+  whether it is worth its cost is a separate finance question.
+- One fixed random seed is set everywhere, so results reproduce from a clean clone.
