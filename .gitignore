@@ -1,0 +1,26 @@
+# Things I never want on GitHub.
+
+# The data is big and I can regenerate it from the loader, so it stays local.
+data/
+
+# My private interview-prep notes. This one is just for me.
+project_log.md
+
+# I do want the result figures to show up in the README, so reports/*.png stays tracked.
+
+# Normal Python clutter
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Testing / notebooks
+.pytest_cache/
+.ipynb_checkpoints/
+.coverage
+
+# OS / editor junk
+.DS_Store
+.idea/
+.vscode/

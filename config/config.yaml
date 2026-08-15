@@ -1,0 +1,16 @@
+random_seed: 42
+alpha: 0.05
+target_power: 0.80
+primary_metric: conversion
+secondary_metric: visit
+treatment_ratio: 0.85
+sim:
+  n_users: 500000
+  n_features: 12
+  base_conversion_rate: 0.03
+  base_visit_rate: 0.05
+  true_ate_conversion: 0.006
+paths:
+  processed_file: data/processed/experiment.parquet
+  ground_truth_file: data/processed/ground_truth.json
+  reports_dir: reports
